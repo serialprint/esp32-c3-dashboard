@@ -169,7 +169,7 @@ pip install platformio
 ### 2. Projeyi Klonlayın
 
 ```bash
-git clone https://github.com/kullaniciadi/esp32-c3-dashboard.git
+git clone https://github.com/serialprint/esp32-c3-dashboard.git
 cd esp32-c3-dashboard
 ```
 
@@ -547,9 +547,8 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 ## 👤 Yazar
 
-**Kullanıcı Adı**
-- GitHub: [@kullaniciadi](https://github.com/kullaniciadi)
-- Instagram: [@kullaniciadi](https://instagram.com/kullaniciadi)
+**serialprint**
+- GitHub: [@serialprint](https://github.com/serialprint)
 
 ---
 
@@ -564,8 +563,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## 📞 İletişim
 
 Sorularınız veya önerileriniz için:
-- Issue açın: [GitHub Issues](https://github.com/kullaniciadi/esp32-c3-dashboard/issues)
-- E-posta: your.email@example.com
+- Issue açın: [GitHub Issues](https://github.com/serialprint/esp32-c3-dashboard/issues)
 
 ---
 
@@ -573,6 +571,6 @@ Sorularınız veya önerileriniz için:
 
 **⭐ Beğendiyseniz yıldız vermeyi unutmayın! ⭐**
 
-Made with ❤️ by [Your Name]
+Made with ❤️ by serialprint
 
 </div>
