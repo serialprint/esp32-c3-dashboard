@@ -102,6 +102,16 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
 
 ## 🖼️ Ekran Görüntüleri
 
+### Proje Kurulumu
+
+<div align="center">
+
+![Proje Kurulumu](docs/images/project-setup.jpg)
+
+*ESP32-C3 Super Mini, ST7789 TFT Ekran, DHT11 Sensör ve Breadboard Kurulumu*
+
+</div>
+
 ### Ana Ekran
 ```
 ┌─────────────────────────────────┐
