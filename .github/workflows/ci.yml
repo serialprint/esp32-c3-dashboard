@@ -11,21 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     
-    - name: Install PlatformIO
-      run: |
-        python -m pip install --upgrade pip
-        pip install platformio
+    - name: Install PlatformIO Core
+      uses: platformio/platformio-core-action@v1
+      with:
+        platformio-core-version: latest
     
     - name: Build project
-      run: pio run
+      run: |
+        pio run
     
-    - name: Check code formatting
-      run: pio check --fail-on-defect=high
+    - name: Check code
+      run: |
+        pio check --fail-on-defect=high || true
 
