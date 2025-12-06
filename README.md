@@ -163,6 +163,35 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
 - **DHT11 Modülü**: Pull-up direnci dahil
 - **ST7789 Modülü**: SPI bağlantılı
 
+### Güç Yönetimi (Opsiyonel - Taşınabilir Kullanım İçin)
+
+| Bileşen | Miktar | Açıklama |
+|---------|--------|----------|
+| TP4056 Şarj Modülü | 1 | LiPo batarya şarj modülü |
+| DD0606SA Boost Converter | 1 | 3.7V'den 5V'a voltaj yükseltici |
+| LiPo Batarya (653095P) | 1 | 3.7V, 2500mAh güç kaynağı |
+| Toggle Switch | 1 | Açma/kapama butonu |
+
+**Güç Yönetimi Avantajları:**
+- ✅ Taşınabilir ve bağımsız çalışma
+- ✅ Temiz ve kontrollü 5V güç kaynağı
+- ✅ Batarya şarj yönetimi (TP4056 ile USB-C üzerinden)
+- ✅ Güvenli açma/kapama kontrolü (Toggle Switch)
+- ✅ Uzun çalışma süresi (2500mAh batarya)
+
+**Güç Yönetimi Çalışma Prensibi:**
+1. **TP4056 Şarj Modülü**: LiPo bataryayı USB-C üzerinden şarj eder
+2. **LiPo Batarya (653095P)**: 3.7V, 2500mAh kapasiteli güç kaynağı
+3. **Toggle Switch**: Batarya gücünü açma/kapama kontrolü
+4. **DD0606SA Boost Converter**: 3.7V batarya voltajını 5V'a yükseltir
+5. **5V Çıkış**: ESP32-C3 ve tüm sensörlere temiz, kontrollü 5V güç sağlar
+
+**Önemli Notlar:**
+- ESP32-C3 Super Mini 5V girişi destekler (VIN pin)
+- Boost converter çıkışı ESP32'nin VIN pinine bağlanmalıdır
+- Toggle switch batarya ile boost converter arasına yerleştirilmelidir
+- TP4056 modülü bataryayı şarj ederken sistem çalışmaya devam edebilir
+
 ---
 
 ## 📦 Kurulum
@@ -338,12 +367,33 @@ ESP32-C3 Super Mini
 
 **Not:** DHT11 modülü kullanıyorsanız pull-up direnci genellikle modülde mevcuttur.
 
+### Güç Yönetimi Bağlantı Şeması
+
+**Batarya Güç Sistemi:**
+```
+LiPo Batarya (653095P)
+  3.7V, 2500mAh
+    │
+    ├─── TP4056 Şarj Modülü (USB-C girişi)
+    │
+    └─── Toggle Switch
+         │
+         └─── DD0606SA Boost Converter
+              │
+              └─── 5V Çıkış ──── ESP32-C3 (VIN/5V)
+                                   │
+                                   ├─── ST7789 (VCC)
+                                   └─── DHT11 (VCC)
+```
+
+**Not:** ESP32-C3 Super Mini 5V girişi destekler. Boost converter çıkışı ESP32'nin VIN pinine bağlanmalıdır.
+
 ### Bağlantı Şeması
 
 ```
 ESP32-C3          ST7789          DHT11
 ─────────         ──────          ─────
-3.3V      ──────── VCC
+5V (VIN)  ──────── VCC    ──────── VCC
           ──────── BLK
 GND       ──────── GND    ──────── GND
 GPIO10    ──────── CS
@@ -352,7 +402,6 @@ GPIO5     ──────── RST
 GPIO4     ──────── SCLK
 GPIO6     ──────── MOSI
 GPIO2     ──────────────────────── DATA
-3.3V      ──────────────────────── VCC
 ```
 
 ---
