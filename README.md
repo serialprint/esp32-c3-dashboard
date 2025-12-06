@@ -5,6 +5,9 @@
 ![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32--C3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
+![PlatformIO](https://img.shields.io/badge/PlatformIO-PlatformIO-orange.svg)
+![Arduino](https://img.shields.io/badge/Arduino-Compatible-blue.svg)
+![GitHub](https://img.shields.io/github/stars/serialprint/esp32-c3-dashboard?style=social)
 
 **Akıllı Dijital Dashboard Projesi**
 
