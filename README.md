@@ -9,8 +9,6 @@
 ![Arduino](https://img.shields.io/badge/Arduino-Compatible-blue.svg)
 ![GitHub](https://img.shields.io/github/stars/serialprint/esp32-c3-dashboard?style=social)
 
-[☕ Buy Me a Coffee](https://www.buymeacoffee.com/serialprint) • [💜 Ko-fi](https://ko-fi.com/serialprint) • [⭐ GitHub Sponsor](https://github.com/sponsors/serialprint)
-
 **Akıllı Dijital Dashboard Projesi**
 
 ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri gösterimi yapan bir dashboard projesi.
@@ -613,24 +611,6 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 **serialprint**
 - GitHub: [@serialprint](https://github.com/serialprint)
-
----
-
-## ☕ Destek
-
-Bu projeyi beğendiyseniz ve desteklemek isterseniz:
-
-<div align="center">
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/serialprint)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/serialprint)
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/serialprint)
-
-**Bir kahve ısmarlamak ister misiniz? ☕**
-
-Her destek, projeyi geliştirmem için motivasyon sağlıyor! 🙏
-
-</div>
 
 ---
 
