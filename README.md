@@ -148,7 +148,7 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
 │                                  │
 │              MENU                │
 │                                  │
-│ 192.168.1.100            v1.2.0  │
+│ 192.168.1.100            v1.2.1  │
 └─────────────────────────────────┘
 ```
 
