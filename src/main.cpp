@@ -9,7 +9,7 @@
 #include <DHT.h>
 #include <DHT_U.h>
 
-#define VERSION_TEXT "v1.2.0"   // 🔥 SAG ALTA GÖRÜNECEK VERSİYON
+#define VERSION_TEXT "v1.2.1"   // 🔥 SAG ALTA GÖRÜNECEK VERSİYON
 
 // =====================================================
 // 🔹 Wi-Fi Bilgileri
@@ -75,8 +75,22 @@ unsigned long lastButtonPress = 0;
 const unsigned long debounceDelay = 200;  // Debounce süresi artırıldı
 
 // 🔹 Menü Sistemi
-int currentMenuPage = 0;  // 0: Ana sayfa, 1: Ayarlar, 2: Parlaklık, 3: WiFi Bilgileri
+int currentMenuPage = 0;  // 0: Ana sayfa, 1: Ayarlar, 2: Parlaklık, 3: WiFi Bilgileri, 4: İstatistikler, 5: Sistem Bilgileri
 int menuItem = 0;
+
+// 🔹 İstatistikler
+float minTemp = 999.0;
+float maxTemp = -999.0;
+float minHum = 999.0;
+float maxHum = -999.0;
+float sumTemp = 0.0;
+float sumHum = 0.0;
+unsigned long readingCount = 0;
+unsigned long wifiConnectedTime = 0;  // WiFi bağlantı zamanı (millis)
+bool wifiWasConnected = false;
+
+// 🔹 Sistem Bilgileri
+unsigned long systemStartTime = 0;  // Sistem başlangıç zamanı
 
 // 🔹 Parlaklık Kontrolü
 int brightness = 128;  // 0-255 arası (varsayılan: %50)
@@ -331,6 +345,15 @@ void drawDHT11Data() {
     return;
   }
 
+  // İstatistikleri güncelle
+  if (temperature < minTemp) minTemp = temperature;
+  if (temperature > maxTemp) maxTemp = temperature;
+  if (humidity < minHum) minHum = humidity;
+  if (humidity > maxHum) maxHum = humidity;
+  sumTemp += temperature;
+  sumHum += humidity;
+  readingCount++;
+
   String tempStr = String(temperature, 1) + " C";
   String humStr = String(humidity, 1) + "%";
 
@@ -369,6 +392,261 @@ void drawDHT11Data() {
     tft.println(humStr);
     prevHum = humStr;
   }
+}
+
+// =======================================================
+// 🟦 İSTATİSTİKLER SAYFASI
+// =======================================================
+void showStatisticsMenu(bool reset = false) {
+  static bool firstDraw = true;
+  static String prevUptimeStr = "";
+  static String prevWifiUptimeStr = "";
+  
+  // Değişkenleri fonksiyonun başında tanımla
+  int lineHeight = 18;
+  int yPos = 35;
+  
+  if (reset) {
+    firstDraw = true;
+    prevUptimeStr = "";
+    prevWifiUptimeStr = "";
+    return;
+  }
+  
+  if (firstDraw) {
+    tft.fillScreen(ST77XX_BLACK);
+    firstDraw = false;
+    
+    // Başlık (ortalanmış)
+    tft.setTextSize(2);
+    tft.setTextColor(ST77XX_CYAN);
+    String title = "ISTATISTIKLER";
+    int16_t x1, y1;
+    uint16_t w, h;
+    tft.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+    int titleX = (TFT_WIDTH - w) / 2;
+    tft.setCursor(titleX, 10);
+    tft.println(title);
+    
+    // İlk çizimde tüm verileri göster
+    tft.setTextSize(1);
+    tft.setTextColor(ST77XX_WHITE);
+    
+    yPos = 35;  // Başlangıç pozisyonu
+    
+    // Ortalama Sıcaklık
+    if (readingCount > 0) {
+      float avgTemp = sumTemp / readingCount;
+      String avgTempStr = "Ort. Sicaklik: " + String(avgTemp, 1) + " C";
+      tft.setCursor(10, yPos);
+      tft.println(avgTempStr);
+      yPos += lineHeight;
+      
+      // Maksimum/Minimum Sıcaklık
+      String tempRangeStr = "Sicaklik: " + String(minTemp, 1) + " / " + String(maxTemp, 1) + " C";
+      tft.setCursor(10, yPos);
+      tft.println(tempRangeStr);
+      yPos += lineHeight;
+      
+      // Ortalama Nem
+      float avgHum = sumHum / readingCount;
+      String avgHumStr = "Ort. Nem: " + String(avgHum, 1) + " %";
+      tft.setCursor(10, yPos);
+      tft.println(avgHumStr);
+      yPos += lineHeight;
+      
+      // Maksimum/Minimum Nem
+      String humRangeStr = "Nem: " + String(minHum, 1) + " / " + String(maxHum, 1) + " %";
+      tft.setCursor(10, yPos);
+      tft.println(humRangeStr);
+      yPos += lineHeight;
+    } else {
+      String noDataStr = "Henuz veri yok";
+      tft.setCursor(10, yPos);
+      tft.println(noDataStr);
+      yPos += lineHeight * 2;
+    }
+    
+    // Talimat (ortalanmış)
+    tft.setTextColor(ST77XX_CYAN);
+    String instructionText = "Buton ile geri don";
+    tft.getTextBounds(instructionText, 0, 0, &x1, &y1, &w, &h);
+    int instX = (TFT_WIDTH - w) / 2;
+    tft.setCursor(instX, 155);
+    tft.println(instructionText);
+    
+    // İlk çizimde süreleri de göster
+    prevUptimeStr = "";
+    prevWifiUptimeStr = "";
+  }
+  
+  // Sadece süreleri güncelle (canlı)
+  // İstatistik verilerinin yüksekliğini hesapla
+  yPos = 35;  // Başlangıç pozisyonu
+  if (readingCount > 0) {
+    yPos += lineHeight * 4;  // 4 satır istatistik
+  } else {
+    yPos += lineHeight * 2;  // "Henuz veri yok" mesajı
+  }
+  
+  // Çalışma Süresi (Uptime) - CANLI GÜNCELLEME
+  unsigned long uptimeSeconds = (millis() - systemStartTime) / 1000;
+  unsigned long days = uptimeSeconds / 86400;
+  unsigned long hours = (uptimeSeconds % 86400) / 3600;
+  unsigned long minutes = (uptimeSeconds % 3600) / 60;
+  String uptimeStr = "Calisma Suresi: " + String(days) + "g " + String(hours) + "s " + String(minutes) + "d";
+  
+  if (uptimeStr != prevUptimeStr) {
+    tft.setTextSize(1);
+    tft.setTextColor(ST77XX_WHITE);
+    tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+    tft.setCursor(10, yPos);
+    tft.println(uptimeStr);
+    prevUptimeStr = uptimeStr;
+  }
+  yPos += lineHeight;
+  
+  // WiFi Bağlantı Süresi - CANLI GÜNCELLEME
+  String wifiUptimeStr;
+  if (WiFi.status() == WL_CONNECTED && wifiWasConnected) {
+    unsigned long wifiUptimeSeconds = (millis() - wifiConnectedTime) / 1000;
+    unsigned long wifiDays = wifiUptimeSeconds / 86400;
+    unsigned long wifiHours = (wifiUptimeSeconds % 86400) / 3600;
+    unsigned long wifiMinutes = (wifiUptimeSeconds % 3600) / 60;
+    wifiUptimeStr = "WiFi Baglanti: " + String(wifiDays) + "g " + String(wifiHours) + "s " + String(wifiMinutes) + "d";
+    
+    if (wifiUptimeStr != prevWifiUptimeStr) {
+      tft.setTextSize(1);
+      tft.setTextColor(ST77XX_WHITE);
+      tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+      tft.setCursor(10, yPos);
+      tft.println(wifiUptimeStr);
+      prevWifiUptimeStr = wifiUptimeStr;
+    }
+  } else {
+    wifiUptimeStr = "WiFi Baglanti: BAGLI DEGIL";
+    if (wifiUptimeStr != prevWifiUptimeStr) {
+      tft.setTextSize(1);
+      tft.setTextColor(ST77XX_RED);
+      tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+      tft.setCursor(10, yPos);
+      tft.println(wifiUptimeStr);
+      prevWifiUptimeStr = wifiUptimeStr;
+    }
+  }
+}
+
+// =======================================================
+// 🟦 SİSTEM BİLGİLERİ SAYFASI
+// =======================================================
+void showSystemInfoMenu(bool reset = false) {
+  static bool firstDraw = true;
+  static unsigned long lastUpdate = 0;
+  
+  if (reset) {
+    firstDraw = true;
+    lastUpdate = 0;
+    return;
+  }
+  
+  // 2 saniyede bir güncelle
+  unsigned long now = millis();
+  if (!firstDraw && (now - lastUpdate < 2000)) {
+    return;
+  }
+  lastUpdate = now;
+  
+  if (firstDraw) {
+    tft.fillScreen(ST77XX_BLACK);
+    firstDraw = false;
+  }
+  
+  // Başlık (ortalanmış)
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_CYAN);
+  String title = "SISTEM BILGILERI";
+  int16_t x1, y1;
+  uint16_t w, h;
+  tft.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+  int titleX = (TFT_WIDTH - w) / 2;
+  tft.fillRect(titleX - 5, 8, w + 10, h + 4, ST77XX_BLACK);
+  tft.setCursor(titleX, 10);
+  tft.println(title);
+  
+  tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE);
+  
+  int lineHeight = 18;
+  int yPos = 35;
+  
+  // CPU Frekansı (ESP32-C3 için)
+  uint32_t cpuFreq = ESP.getCpuFreqMHz();
+  String cpuStr = "CPU Frekans: " + String(cpuFreq) + " MHz";
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(cpuStr);
+  yPos += lineHeight;
+  
+  // Bellek Kullanımı
+  uint32_t freeHeap = ESP.getFreeHeap();
+  uint32_t totalHeap = ESP.getHeapSize();
+  uint32_t usedHeap = totalHeap - freeHeap;
+  float heapPercent = (float)usedHeap / totalHeap * 100.0;
+  String heapStr = "Bellek: " + String(usedHeap / 1024) + "/" + String(totalHeap / 1024) + " KB (" + String(heapPercent, 1) + "%)";
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(heapStr);
+  yPos += lineHeight;
+  
+  // Chip ID
+  uint64_t chipid = ESP.getEfuseMac();
+  String chipIdStr = "Chip ID: " + String((uint32_t)(chipid >> 32), HEX) + String((uint32_t)chipid, HEX);
+  chipIdStr.toUpperCase();
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(chipIdStr);
+  yPos += lineHeight;
+  
+  // Firmware Versiyonu
+  String versionStr = "Firmware: " + String(VERSION_TEXT);
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(versionStr);
+  yPos += lineHeight;
+  
+  // Uptime (Çalışma Süresi)
+  unsigned long uptimeSeconds = (millis() - systemStartTime) / 1000;
+  unsigned long days = uptimeSeconds / 86400;
+  unsigned long hours = (uptimeSeconds % 86400) / 3600;
+  unsigned long minutes = (uptimeSeconds % 3600) / 60;
+  String uptimeStr = "Uptime: " + String(days) + "g " + String(hours) + "s " + String(minutes) + "d";
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(uptimeStr);
+  yPos += lineHeight;
+  
+  // WiFi Durumu
+  String wifiStatus = "WiFi: ";
+  if (WiFi.status() == WL_CONNECTED) {
+    wifiStatus += "BAGLI";
+    tft.setTextColor(ST77XX_GREEN);
+  } else {
+    wifiStatus += "BAGLI DEGIL";
+    tft.setTextColor(ST77XX_RED);
+  }
+  tft.fillRect(10, yPos, TFT_WIDTH - 20, lineHeight, ST77XX_BLACK);
+  tft.setCursor(10, yPos);
+  tft.println(wifiStatus);
+  tft.setTextColor(ST77XX_WHITE);
+  
+  // Talimat (ortalanmış)
+  tft.setTextColor(ST77XX_CYAN);
+  String instructionText = "Buton ile geri don";
+  tft.getTextBounds(instructionText, 0, 0, &x1, &y1, &w, &h);
+  int instX = (TFT_WIDTH - w) / 2;
+  tft.fillRect(instX - 5, 155, w + 10, h + 4, ST77XX_BLACK);
+  tft.setCursor(instX, 155);
+  tft.println(instructionText);
 }
 
 // =======================================================
@@ -564,11 +842,12 @@ void showSettingsMenu() {
   String menuItems[] = {
     "Parlaklik",
     "WiFi Ayarlari",
-    "Saat Dilimi",
+    "Istatistikler",
+    "Sistem Bilgileri",
     "Geri Don"
   };
   
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     if (i == menuItem) {
       // Seçili item: CYAN arka plan, WHITE text (ana sayfa uyumlu)
       tft.fillRect(15, 38 + (i * 25), TFT_WIDTH - 30, 22, ST77XX_CYAN);
@@ -741,7 +1020,7 @@ void handleEncoderNavigation() {
       // Ayarlar menüsünde item seçimi
       menuItem += diff;
       if (menuItem < 0) menuItem = 0;
-      if (menuItem > 3) menuItem = 3;
+      if (menuItem > 4) menuItem = 4;
       showSettingsMenu();
     } else if (currentMenuPage == 2) {
       // Parlaklık ayarı menüsünde
@@ -778,10 +1057,29 @@ void handleEncoderNavigation() {
         currentMenuPage = 3;
         showWiFiInfoMenu(true);  // Reset
         showWiFiInfoMenu();      // İlk çizim
+      } else if (menuItem == 2) {
+        // "Istatistikler" seçildi - İstatistikler sayfasına geç
+        currentMenuPage = 4;
+        showStatisticsMenu(true);  // Reset
+        showStatisticsMenu();      // İlk çizim
       } else if (menuItem == 3) {
+        // "Sistem Bilgileri" seçildi - Sistem bilgileri sayfasına geç
+        currentMenuPage = 5;
+        showSystemInfoMenu(true);  // Reset
+        showSystemInfoMenu();      // İlk çizim
+      } else if (menuItem == 4) {
         // "Geri Don" seçildi - ana sayfaya dön
         currentMenuPage = 0;
         tft.fillScreen(ST77XX_BLACK);
+        
+        // Önceki değerleri sıfırla ki tekrar çizilsin
+        prevTime = "";
+        prevDate = "";
+        prevTemp = "";
+        prevHum = "";
+        
+        // lastTimeUpdate'i sıfırla ki hemen güncellensin
+        lastTimeUpdate = 0;
         
         // Ana sayfa çizimlerini hemen yeniden çiz
         struct tm timeinfo;
@@ -793,12 +1091,6 @@ void handleEncoderNavigation() {
           drawMenuButton();     // 🔥 MENÜ BUTONU
           drawVersionText();
         }
-        
-        // Önceki değerleri sıfırla ki tekrar çizilsin
-        prevTime = "";
-        prevDate = "";
-        prevTemp = "";
-        prevHum = "";
       } else {
         // Diğer menü item'ları için (ileride fonksiyonellik eklenebilir)
         Serial.print("Menu item secildi: ");
@@ -816,6 +1108,18 @@ void handleEncoderNavigation() {
       currentMenuPage = 1;
       menuItem = 1;  // WiFi Ayarlari seçili kalsın
       showWiFiInfoMenu(true);  // Reset
+      showSettingsMenu();
+    } else if (currentMenuPage == 4) {
+      // İstatistikler sayfasından ayarlar menüsüne geri dön
+      currentMenuPage = 1;
+      menuItem = 2;  // Istatistikler seçili kalsın
+      showStatisticsMenu(true);  // Reset
+      showSettingsMenu();
+    } else if (currentMenuPage == 5) {
+      // Sistem bilgileri sayfasından ayarlar menüsüne geri dön
+      currentMenuPage = 1;
+      menuItem = 3;  // Sistem Bilgileri seçili kalsın
+      showSystemInfoMenu(true);  // Reset
       showSettingsMenu();
     }
   }
@@ -842,6 +1146,12 @@ void updateTimeIfNeeded() {
     } else if (currentMenuPage == 3) {
       // WiFi bilgileri sayfası - sinyal gücü güncellensin
       showWiFiInfoMenu();
+    } else if (currentMenuPage == 4) {
+      // İstatistikler sayfası - güncelle
+      showStatisticsMenu();
+    } else if (currentMenuPage == 5) {
+      // Sistem bilgileri sayfası - güncelle
+      showSystemInfoMenu();
     }
   }
 }
@@ -861,6 +1171,7 @@ void checkWiFiConnection() {
       if (!wifiReconnecting) {
         wifiReconnecting = true;
         lastReconnectAttempt = 0;  // Hemen dene
+        wifiWasConnected = false;  // Bağlantı koptu
         Serial.println("WiFi baglantisi koptu! Yeniden baglanma baslatiliyor...");
       }
       
@@ -880,6 +1191,11 @@ void checkWiFiConnection() {
       }
     } else {
       // Bağlantı var
+      if (!wifiWasConnected) {
+        // İlk bağlantı zamanını kaydet
+        wifiConnectedTime = millis();
+        wifiWasConnected = true;
+      }
       if (wifiReconnecting) {
         wifiReconnecting = false;
         Serial.println("WiFi YENİDEN BAGLANDI!");
@@ -887,6 +1203,10 @@ void checkWiFiConnection() {
         Serial.println(WiFi.localIP());
         
         ipAddress = WiFi.localIP().toString();
+        
+        // WiFi bağlantı zamanını güncelle (yeniden bağlandı)
+        wifiConnectedTime = millis();
+        wifiWasConnected = true;
         
         // NTP'yi yeniden yapılandır (hızlı, blocking değil)
         configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -918,6 +1238,10 @@ void connectWiFiAndNTP() {
   Serial.println(WiFi.localIP());
 
   ipAddress = WiFi.localIP().toString();
+  
+  // WiFi bağlantı zamanını kaydet
+  wifiConnectedTime = millis();
+  wifiWasConnected = true;
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
@@ -932,6 +1256,9 @@ void connectWiFiAndNTP() {
 void setup() {
   Serial.begin(115200);
   delay(500);
+  
+  // Sistem başlangıç zamanını kaydet
+  systemStartTime = millis();
 
   SPI.begin(TFT_SCLK, -1, TFT_MOSI, TFT_CS);
 

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2024-12-XX
+
+### Added
+- 📊 İstatistikler sayfası eklendi
+  - Ortalama sıcaklık/nem gösterimi
+  - Maksimum/minimum değerler
+  - Çalışma süresi (uptime) - canlı güncelleme
+  - WiFi bağlantı süresi - canlı güncelleme
+- 💻 Sistem bilgileri sayfası eklendi
+  - CPU frekansı
+  - Bellek kullanımı (KB ve %)
+  - Chip ID
+  - Firmware versiyonu
+  - Uptime (çalışma süresi)
+  - WiFi durumu
+
+### Fixed
+- 🔧 Menüden ana sayfaya dönerken gecikme sorunu düzeltildi
+- 🔧 İstatistikler sayfasında sürelerin canlı güncellenmesi sağlandı
+- 🔧 Değişken tekrar tanımlama hataları düzeltildi
+
 ## [1.2.0] - 2024-12-XX
 
 ### Added
@@ -80,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.1]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.2.1
 [1.2.0]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.2.0
 [1.1.0]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.1.0
 [1.0.3]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.0.3

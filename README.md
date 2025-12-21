@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32--C3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-PlatformIO-orange.svg)
@@ -627,7 +627,13 @@ Katkılarınızı bekliyoruz! Lütfen:
 
 ## 📝 Versiyon Geçmişi
 
-### v1.2.0 (Mevcut)
+### v1.2.1 (Mevcut)
+- ✅ İstatistikler sayfası eklendi (Ortalama, Min/Max, Uptime, WiFi bağlantı süresi)
+- ✅ Sistem bilgileri sayfası eklendi (CPU, Bellek, Chip ID, Firmware, Uptime)
+- ✅ Menüden ana sayfaya dönerken gecikme sorunu düzeltildi
+- ✅ İstatistikler sayfasında sürelerin canlı güncellenmesi sağlandı
+
+### v1.2.0
 - ✅ Rotary encoder desteği eklendi
 - ✅ Menü sistemi eklendi (Ayarlar, Parlaklık, WiFi Bilgileri)
 - ✅ PWM ile parlaklık kontrolü (0-100%)
