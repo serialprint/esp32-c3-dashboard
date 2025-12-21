@@ -145,10 +145,10 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
 │     01.01.2024                   │
 │     14:30:45                     │
 │                                  │
-│        -65 dBm                   │
 │                                  │
+│              MENU                │
 │                                  │
-│ 192.168.1.100            v1.1.0  │
+│ 192.168.1.100            v1.2.0  │
 └─────────────────────────────────┘
 ```
 
@@ -627,16 +627,35 @@ Katkılarınızı bekliyoruz! Lütfen:
 
 ## 📝 Versiyon Geçmişi
 
-### v1.1.0 (Mevcut)
+### v1.2.0 (Mevcut)
+- ✅ Rotary encoder desteği eklendi
+- ✅ Menü sistemi eklendi (Ayarlar, Parlaklık, WiFi Bilgileri)
+- ✅ PWM ile parlaklık kontrolü (0-100%)
+- ✅ Otomatik WiFi yeniden bağlanma
+- ✅ WiFi bilgileri sayfası (SSID, IP, RSSI)
+- ✅ Menü butonu eklendi (ana sayfada)
+- ✅ Menü renkleri ana sayfa ile uyumlu hale getirildi
+- ✅ UI iyileştirmeleri (başlıklar ortalandı, progress bar optimizasyonu)
+- ✅ Progress bar iz kalma sorunu düzeltildi
+
+### v1.1.0
 - ✅ DHT11 sensör desteği eklendi
 - ✅ Sıcaklık ve nem gösterimi
 - ✅ OTA ilerleme ekranı iyileştirildi
-- ✅ Ekran optimizasyonları
+- ✅ Progress bar optimizasyonu (kırpma önlendi)
+- ✅ Yüzde bilgisi gösterimi
+- ✅ Ekran güncelleme optimizasyonları
 
 ### v1.0.3
 - ✅ İlk stabil sürüm
-- ✅ WiFi ve NTP desteği
+- ✅ WiFi bağlantısı
+- ✅ NTP zaman senkronizasyonu
+- ✅ ST7789 TFT ekran desteği
+- ✅ OTA güncelleme desteği
 - ✅ Temel dashboard arayüzü
+- ✅ WiFi sinyal gücü gösterimi
+- ✅ Dinamik WiFi ikonları
+- ✅ Versiyon bilgisi gösterimi
 
 ---
 
