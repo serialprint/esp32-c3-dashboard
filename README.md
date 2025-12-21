@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32--C3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-PlatformIO-orange.svg)
@@ -67,10 +67,34 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
   - İlerleme çubuğu ve yüzde gösterimi
   - Güvenli güncelleme mekanizması
 
+- **🎛️ Rotary Encoder Kontrolü**
+  - Menü navigasyonu
+  - Parlaklık kontrolü
+  - Buton ile menü açma/kapama
+  - Debounce koruması
+
+- **📱 Menü Sistemi**
+  - Ayarlar menüsü
+  - Parlaklık ayarı sayfası
+  - WiFi bilgileri sayfası
+  - Encoder ile kolay navigasyon
+
+- **💡 Parlaklık Kontrolü**
+  - PWM ile ekran parlaklığı kontrolü
+  - 0-100% arası ayar
+  - Progress bar ile görsel gösterim
+  - Gerçek zamanlı güncelleme
+
+- **🔁 Otomatik WiFi Yeniden Bağlanma**
+  - Bağlantı koptuğunda otomatik yeniden bağlanma
+  - Non-blocking, CPU dostu
+  - Periyodik durum kontrolü
+
 - **🎨 Modern Arayüz**
   - Temiz ve okunabilir tasarım
   - Renkli bilgi gösterimi
   - Optimize edilmiş ekran güncellemeleri
+  - Menü butonu ile kolay erişim
 
 ### 📊 Ekranda Gösterilen Bilgiler
 
@@ -86,10 +110,10 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
   - Beyaz renk, 1x boyut
   - Format: "XX.X%"
 
-- **WiFi Sinyal Gücü** (Merkez)
-  - Sarı renk, 2x boyut
-  - Format: "XX dBm"
-  - Dinamik sinyal ikonları
+- **Menü Butonu** (Alt orta)
+  - Beyaz renk, 1x boyut
+  - "MENU" yazısı
+  - Encoder butonuna basarak menüye erişim
 
 - **IP Adresi** (Sol alt)
   - Beyaz renk, 1x boyut
@@ -355,7 +379,7 @@ ESP32-C3 Super Mini
 | RST | GPIO5 | Reset |
 | SCLK | GPIO4 | SPI Clock |
 | MOSI | GPIO6 | SPI Data |
-| BLK | 3.3V | Backlight (opsiyonel) |
+| BLK | GPIO1 | Backlight (PWM kontrolü) |
 
 ### DHT11 Bağlantıları
 
@@ -366,6 +390,18 @@ ESP32-C3 Super Mini
 | DATA | GPIO2 | Veri (4.7kΩ pull-up gerekli) |
 
 **Not:** DHT11 modülü kullanıyorsanız pull-up direnci genellikle modülde mevcuttur.
+
+### Rotary Encoder Bağlantıları
+
+| Rotary Encoder | ESP32-C3 | Açıklama |
+|----------------|----------|----------|
+| VCC | 3.3V | Güç |
+| GND | GND | Toprak |
+| CLK | GPIO8 | Clock (Encoder çıkışı) |
+| DT | GPIO9 | Data (Encoder çıkışı) |
+| SW | GPIO3 | Switch (Buton, pull-up gerekli) |
+
+**Not:** Rotary encoder modülü genellikle dahili pull-up dirençleri içerir. SW pinine harici pull-up direnci gerekebilir.
 
 ### Güç Yönetimi Bağlantı Şeması
 
@@ -391,17 +427,20 @@ LiPo Batarya (653095P)
 ### Bağlantı Şeması
 
 ```
-ESP32-C3          ST7789          DHT11
-─────────         ──────          ─────
-5V (VIN)  ──────── VCC    ──────── VCC
-          ──────── BLK
-GND       ──────── GND    ──────── GND
+ESP32-C3          ST7789          DHT11          Rotary Encoder
+─────────         ──────          ─────          ──────────────
+5V (VIN)  ──────── VCC    ──────── VCC    ──────── VCC
+GPIO1     ──────── BLK
+GND       ──────── GND    ──────── GND    ──────── GND
 GPIO10    ──────── CS
 GPIO7     ──────── DC
 GPIO5     ──────── RST
 GPIO4     ──────── SCLK
 GPIO6     ──────── MOSI
 GPIO2     ──────────────────────── DATA
+GPIO8     ──────────────────────────────────────── CLK
+GPIO9     ──────────────────────────────────────── DT
+GPIO3     ──────────────────────────────────────── SW
 ```
 
 ---
