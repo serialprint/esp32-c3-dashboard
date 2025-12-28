@@ -8,8 +8,11 @@
 #include <ESPmDNS.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <Preferences.h>
+#include "esp_sleep.h"
+#include "driver/gpio.h"
 
-#define VERSION_TEXT "v1.2.1"   // 🔥 SAG ALTA GÖRÜNECEK VERSİYON
+#define VERSION_TEXT "v1.3.0"   // 🔥 SAG ALTA GÖRÜNECEK VERSİYON
 
 // =====================================================
 // 🔹 Wi-Fi Bilgileri
@@ -91,11 +94,24 @@ bool wifiWasConnected = false;
 
 // 🔹 Sistem Bilgileri
 unsigned long systemStartTime = 0;  // Sistem başlangıç zamanı
+unsigned long totalUptimeSeconds = 0;  // Kayıtlı toplam çalışma süresi (saniye)
+Preferences prefs;  // Preferences API için
+unsigned long lastUptimeSave = 0;  // Son kayıt zamanı
+const unsigned long uptimeSaveInterval = 60000;  // 60 saniyede bir kaydet
 
 // 🔹 Parlaklık Kontrolü
 int brightness = 128;  // 0-255 arası (varsayılan: %50)
 const int brightnessMin = 20;
 const int brightnessMax = 255;
+
+// 🔹 Ekran Koruyucu (Screen Saver)
+bool screenSaverActive = false;
+unsigned long lastActivityTime = 0;
+unsigned long screenSaverStartTime = 0;  // Ekran koruyucunun aktif olduğu zaman
+const unsigned long screenSaverTimeout = 60000;  // 1 dakika (60000 ms)
+const unsigned long deepSleepTimeout = 300000;  // 5 dakika (300000 ms) - Deep Sleep için
+int savedBrightness = 128;  // Normal parlaklığı saklamak için
+bool needRedraw = false;  // Ekran koruyucudan çıkınca yeniden çizmek için
 
 const char* otaName = "sp_dashboard";
 const char* otaPass = "1234";
@@ -222,6 +238,146 @@ void showSplashScreen() {
   delay(3000);
 
   tft.fillScreen(ST77XX_BLACK);
+}
+
+// =======================================================
+//  🟦 EKRAN KORUYUCU (SCREEN SAVER)
+// =======================================================
+void showScreenSaver() {
+  tft.setRotation(1);
+  tft.fillScreen(ST77XX_BLACK);
+
+  int x = (tft.width() - 170) / 2;
+  int y = (tft.height() - 172) / 2;
+
+  tft.drawRGBBitmap(x, y, epd_bitmap_SP, 170, 172);
+}
+
+// =======================================================
+//  🟦 EKRAN KORUYUCU AKTİVİTE KAYDI
+// =======================================================
+void updateActivity() {
+  lastActivityTime = millis();
+  
+  // Eğer ekran koruyucu aktifse, kapat
+  if (screenSaverActive) {
+    screenSaverActive = false;
+    screenSaverStartTime = 0;  // Ekran koruyucu zamanlayıcısını sıfırla
+    // Normal parlaklığa geri dön
+    brightness = savedBrightness;
+    setBrightness(brightness);
+    needRedraw = true;  // Ekranı yeniden çiz
+    Serial.println("Ekran koruyucu devre disi - normal moda donuldu");
+  }
+}
+
+// =======================================================
+//  🟦 DEEP SLEEP MODUNA GEÇ
+// =======================================================
+void enterDeepSleep() {
+  Serial.println("5 dakika ekran koruyucuda kalindi - Deep Sleep moduna geçiliyor...");
+  
+  // Önce tüm önemli verileri kaydet
+  saveTotalUptime();
+  
+  // Ekranı kapat (mesaj göster)
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_YELLOW);
+  tft.setCursor(20, 60);
+  tft.println("Deep Sleep");
+  tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE);
+  tft.setCursor(20, 90);
+  tft.println("Butona basiniz");
+  
+  delay(2000);  // Mesajı göster
+  
+  // Encoder butonunu (GPIO3) wake-up pini olarak ayarla
+  // ESP32-C3'te Deep Sleep için GPIO0-5 (RTC GPIO'lar) kullanılabilir
+  // GPIO3 RTC GPIO olduğu için kullanılabilir
+  // Buton pull-up olduğu için basıldığında LOW olur
+  
+  // Encoder interrupt'ını devre dışı bırak (Deep Sleep için gerekli)
+  detachInterrupt(digitalPinToInterrupt(ENCODER_CLK));
+  
+  // GPIO'yu INPUT olarak yapılandır (Deep Sleep için gerekli)
+  // Pull-up aktif olmalı (buton basıldığında LOW olacak)
+  pinMode(ENCODER_SW, INPUT_PULLUP);
+  delay(200);  // Yapılandırmanın tamamlanması için bekle
+  
+  // ESP32-C3 için Deep Sleep GPIO wake-up yapılandırması
+  // ESP32-C3'te esp_deep_sleep_enable_gpio_wakeup() direkt kullanılır
+  // Buton pull-up olduğu için basıldığında LOW olur
+  // GPIO3 bit mask: (1ULL << 3)
+  
+  // Yedek olarak timer wake-up ekle (1 saat sonra otomatik uyanır)
+  // Eğer GPIO wake-up çalışmazsa en azından timer ile uyanır
+  esp_sleep_enable_timer_wakeup(3600000000ULL);  // 1 saat = 3600 saniye * 1000000 mikrosaniye
+  
+  // GPIO wake-up'ı etkinleştir (bitmask ile)
+  // ESP_GPIO_WAKEUP_GPIO_LOW = LOW seviyesinde uyandır
+  esp_deep_sleep_enable_gpio_wakeup((1ULL << ENCODER_SW), ESP_GPIO_WAKEUP_GPIO_LOW);
+  
+  Serial.print("Deep Sleep basladi - GPIO");
+  Serial.print(ENCODER_SW);
+  Serial.println(" (LOW) butonu ile uyandirilabilir");
+  Serial.println("NOT: Butona basip BASILI TUTUNUZ");
+  Serial.println("Yedek: 1 saat sonra otomatik uyanir");
+  Serial.flush();  // Seri port verilerini gönder
+  
+  delay(300);  // Son kontrol için bekleme
+  
+  // Deep Sleep'e geç
+  esp_deep_sleep_start();
+  // Buradan sonra kod çalışmaz, cihaz uyanınca setup() tekrar çalışır
+}
+
+// =======================================================
+//  🟦 EKRAN KORUYUCU KONTROLÜ
+// =======================================================
+void checkScreenSaver() {
+  unsigned long now = millis();
+  
+  // Menü açıkken veya OTA güncellemesi sırasında ekran koruyucuyu aktif etme
+  if (currentMenuPage != 0) {
+    lastActivityTime = now;  // Menüdeyken aktiviteyi güncelle
+    screenSaverStartTime = 0;  // Ekran koruyucu zamanlayıcısını sıfırla
+    return;
+  }
+  
+  // Ekran koruyucu aktif değilse kontrol et
+  if (!screenSaverActive) {
+    // Son aktiviteden bu yana geçen süre
+    unsigned long inactiveTime = now - lastActivityTime;
+    
+    if (inactiveTime >= screenSaverTimeout) {
+      // Ekran koruyucuyu aktif et
+      screenSaverActive = true;
+      screenSaverStartTime = now;  // Ekran koruyucunun başlangıç zamanını kaydet
+      savedBrightness = brightness;  // Mevcut parlaklığı kaydet
+      
+      // Parlaklığı %10'a düşür (255'in %10'u = 25.5, yaklaşık 26)
+      int screenSaverBrightness = (brightnessMax * 10) / 100;  // %10
+      if (screenSaverBrightness < brightnessMin) screenSaverBrightness = brightnessMin;
+      setBrightness(screenSaverBrightness);
+      
+      // Logoyu göster
+      showScreenSaver();
+      
+      Serial.println("Ekran koruyucu aktif");
+    }
+  } else {
+    // Ekran koruyucu aktif - Deep Sleep kontrolü yap
+    if (screenSaverStartTime > 0) {
+      unsigned long screenSaverActiveTime = now - screenSaverStartTime;
+      
+      if (screenSaverActiveTime >= deepSleepTimeout) {
+        // 5 dakika ekran koruyucuda kaldı - Deep Sleep'e geç
+        enterDeepSleep();
+      }
+    }
+  }
 }
 
 // =======================================================
@@ -489,12 +645,13 @@ void showStatisticsMenu(bool reset = false) {
     yPos += lineHeight * 2;  // "Henuz veri yok" mesajı
   }
   
-  // Çalışma Süresi (Uptime) - CANLI GÜNCELLEME
-  unsigned long uptimeSeconds = (millis() - systemStartTime) / 1000;
-  unsigned long days = uptimeSeconds / 86400;
-  unsigned long hours = (uptimeSeconds % 86400) / 3600;
-  unsigned long minutes = (uptimeSeconds % 3600) / 60;
-  String uptimeStr = "Calisma Suresi: " + String(days) + "g " + String(hours) + "s " + String(minutes) + "d";
+  // Toplam Çalışma Süresi (Uptime) - CANLI GÜNCELLEME
+  unsigned long currentUptimeSeconds = (millis() - systemStartTime) / 1000;
+  unsigned long totalSeconds = totalUptimeSeconds + currentUptimeSeconds;
+  unsigned long days = totalSeconds / 86400;
+  unsigned long hours = (totalSeconds % 86400) / 3600;
+  unsigned long minutes = (totalSeconds % 3600) / 60;
+  String uptimeStr = "Toplam Calisma Suresi: " + String(days) + "g " + String(hours) + "s " + String(minutes) + "d";
   
   if (uptimeStr != prevUptimeStr) {
     tft.setTextSize(1);
@@ -1011,6 +1168,9 @@ void handleEncoderNavigation() {
   if (encoderPosition != lastEncoderPosition) {
     int diff = encoderPosition - lastEncoderPosition;
     
+    // Encoder hareketi = aktivite (ekran koruyucuyu kapat)
+    updateActivity();
+    
     if (currentMenuPage == 0) {
       // Ana sayfada encoder ile menü item seçimi yapılabilir
       // Şimdilik sadece log
@@ -1039,6 +1199,9 @@ void handleEncoderNavigation() {
   
   if (encoderButtonPressed) {
     encoderButtonPressed = false;
+    
+    // Buton basımı = aktivite (ekran koruyucuyu kapat)
+    updateActivity();
     
     if (currentMenuPage == 0) {
       // Ana sayfadan ayarlar menüsüne geç
@@ -1128,9 +1291,35 @@ void handleEncoderNavigation() {
 // =======================================================
 void updateTimeIfNeeded() {
   unsigned long now = millis();
+  
+  // Ekran koruyucudan çıkınca ekranı yeniden çiz
+  if (needRedraw && !screenSaverActive) {
+    needRedraw = false;
+    if (currentMenuPage == 0) {
+      // Ana sayfa çizimlerini yeniden yap
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo)) {
+        prevTime = "";  // Yeniden çizilsin
+        prevDate = "";
+        prevTemp = "";
+        prevHum = "";
+        drawTimeAndDate(timeinfo);
+        updateLogoByRSSI();
+        drawDHT11Data();
+        drawIPAddress();
+        drawMenuButton();
+        drawVersionText();
+      }
+    }
+  }
 
   if (now - lastTimeUpdate >= timeInterval) {
     lastTimeUpdate = now;
+    
+    // Ekran koruyucu aktifse zaman güncelleme yapma
+    if (screenSaverActive) {
+      return;
+    }
 
     if (currentMenuPage == 0) {
       // Ana sayfa çizimleri
@@ -1253,9 +1442,74 @@ void connectWiFiAndNTP() {
 }
 
 // =======================================================
+// 🟦 TOPLAM ÇALIŞMA SÜRESİNİ KAYDET
+// =======================================================
+void saveTotalUptime() {
+  unsigned long currentUptimeSeconds = (millis() - systemStartTime) / 1000;
+  unsigned long newTotalSeconds = totalUptimeSeconds + currentUptimeSeconds;
+  
+  prefs.begin("stats", false);
+  prefs.putULong64("totalUptime", newTotalSeconds);
+  prefs.end();
+  
+  // Kayıt yapıldıktan sonra systemStartTime'ı sıfırla ve totalUptimeSeconds'ı güncelle
+  totalUptimeSeconds = newTotalSeconds;
+  systemStartTime = millis();
+  
+  Serial.print("Toplam calisma suresi kaydedildi: ");
+  Serial.print(totalUptimeSeconds / 86400);
+  Serial.print(" gun, ");
+  Serial.print((totalUptimeSeconds % 86400) / 3600);
+  Serial.print(" saat, ");
+  Serial.print((totalUptimeSeconds % 3600) / 60);
+  Serial.println(" dakika");
+}
+
+// =======================================================
+// 🟦 TOPLAM ÇALIŞMA SÜRESİNİ YÜKLE
+// =======================================================
+void loadTotalUptime() {
+  prefs.begin("stats", true);  // Read-only mode
+  totalUptimeSeconds = prefs.getULong64("totalUptime", 0);
+  prefs.end();
+  
+  if (totalUptimeSeconds > 0) {
+    Serial.print("Kayitli toplam calisma suresi yuklendi: ");
+    Serial.print(totalUptimeSeconds / 86400);
+    Serial.print(" gun, ");
+    Serial.print((totalUptimeSeconds % 86400) / 3600);
+    Serial.print(" saat, ");
+    Serial.print((totalUptimeSeconds % 3600) / 60);
+    Serial.println(" dakika");
+  } else {
+    Serial.println("Kayitli calisma suresi bulunamadi (ilk calistirma)");
+  }
+}
+
+// =======================================================
 void setup() {
   Serial.begin(115200);
   delay(500);
+  
+  // Deep Sleep'ten uyanma sebebini kontrol et
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  switch(wakeup_reason) {
+    case ESP_SLEEP_WAKEUP_EXT0:
+    case ESP_SLEEP_WAKEUP_EXT1:
+    case ESP_SLEEP_WAKEUP_GPIO:
+      Serial.println("UYANMA SEBEBI: GPIO (Buton)");
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      Serial.println("UYANMA SEBEBI: Timer");
+      break;
+    case ESP_SLEEP_WAKEUP_UNDEFINED:
+    default:
+      Serial.println("UYANMA SEBEBI: Normal baslatma veya belirsiz");
+      break;
+  }
+  
+  // Kayıtlı toplam çalışma süresini yükle
+  loadTotalUptime();
   
   // Sistem başlangıç zamanını kaydet
   systemStartTime = millis();
@@ -1307,12 +1561,26 @@ void setup() {
 
   drawVersionText();  // Açılışta da yazılsın
   startOTA();
+  
+  // İlk aktivite zamanını kaydet
+  lastActivityTime = millis();
 }
 
 // =======================================================
 void loop() {
   ArduinoOTA.handle();
+  
+  // Ekran koruyucu kontrolü (en üstte, diğer fonksiyonlardan önce)
+  checkScreenSaver();
+  
   updateTimeIfNeeded();
   handleEncoderNavigation();  // 🔥 ENCODER KONTROLÜ
   checkWiFiConnection();      // 🔥 WIFI YENİDEN BAĞLANMA (Non-blocking, CPU dostu)
+  
+  // Toplam çalışma süresini belirli aralıklarla kaydet
+  unsigned long now = millis();
+  if (now - lastUptimeSave >= uptimeSaveInterval) {
+    lastUptimeSave = now;
+    saveTotalUptime();
+  }
 }

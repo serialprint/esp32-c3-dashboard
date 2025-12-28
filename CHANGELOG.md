@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2024-12-XX
+
+### Added
+- 💾 **Kalıcı Toplam Çalışma Süresi**
+  - İstatistikler sayfasında "Toplam Çalışma Süresi" gösterimi
+  - Çalışma süresi Preferences API ile kalıcı olarak kaydedilir
+  - 60 saniyede bir otomatik kayıt
+  - Cihaz yeniden başlatıldığında toplam süre korunur ve devam eder
+  - Toplam süre = kayıtlı toplam + mevcut oturum süresi
+
+- 💤 **Ekran Koruyucu (Screen Saver)**
+  - 1 dakika hareketsizlik sonrası otomatik devreye girer
+  - Açılış logosunu gösterir
+  - Ekran parlaklığını %10'a düşürür (güç tasarrufu)
+  - Normal parlaklık ayarı otomatik kaydedilir
+  - Encoder hareketi veya buton ile normal moda döner
+  - Menü açıkken veya OTA güncellemesi sırasında devreye girmez
+
+- 🌙 **Deep Sleep Modu**
+  - 5 dakika ekran koruyucuda kalırsa otomatik devreye girer
+  - Maksimum güç tasarrufu sağlar (mikroamper seviyesinde)
+  - Deep Sleep'e geçmeden önce tüm veriler kaydedilir
+  - Encoder butonu (GPIO3) ile uyandırılabilir
+  - Yedek timer wake-up eklendi (1 saat sonra otomatik uyanır)
+  - Wake-up sebebi seri monitörde gösterilir
+
+### Changed
+- 📊 İstatistikler sayfasında "Çalışma Süresi" → "Toplam Çalışma Süresi" olarak değiştirildi
+- 🔄 Ekran koruyucudan çıkınca ekran düzgün şekilde yeniden çiziliyor
+- ⚡ Güç yönetimi iyileştirildi (ekran koruyucu ve Deep Sleep ile)
+
+### Technical
+- Preferences API kullanılarak kalıcı veri saklama eklendi
+- ESP32-C3 Deep Sleep API entegrasyonu (esp_sleep.h, driver/gpio.h)
+- Ekran koruyucu zamanlayıcı sistemi
+- Aktivite takip mekanizması (encoder ve buton)
+
 ## [1.2.1] - 2024-12-XX
 
 ### Added
@@ -101,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.3.0]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.3.0
 [1.2.1]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.2.1
 [1.2.0]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.2.0
 [1.1.0]: https://github.com/serialprint/esp32-c3-dashboard/releases/tag/v1.1.0

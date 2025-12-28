@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-ESP32--C3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-PlatformIO-orange.svg)
@@ -95,6 +95,23 @@ ESP32-C3 Super Mini ile ST7789 TFT ekran kullanarak gerçek zamanlı veri göste
   - Renkli bilgi gösterimi
   - Optimize edilmiş ekran güncellemeleri
   - Menü butonu ile kolay erişim
+
+- **💾 Kalıcı Veri Saklama**
+  - Toplam çalışma süresi kalıcı olarak kaydedilir
+  - Cihaz yeniden başlatıldığında toplam süre korunur
+  - Preferences API ile güvenli veri saklama
+
+- **💤 Ekran Koruyucu (Screen Saver)**
+  - 1 dakika hareketsizlik sonrası otomatik devreye girer
+  - Açılış logosunu gösterir
+  - Ekran parlaklığını %10'a düşürür (güç tasarrufu)
+  - Encoder hareketi veya buton ile normal moda döner
+
+- **🌙 Deep Sleep Modu**
+  - 5 dakika ekran koruyucuda kalırsa otomatik devreye girer
+  - Maksimum güç tasarrufu sağlar (mikroamper seviyesinde)
+  - Encoder butonu ile uyandırılabilir
+  - Yedek timer wake-up (1 saat sonra otomatik uyanır)
 
 ### 📊 Ekranda Gösterilen Bilgiler
 
@@ -334,6 +351,20 @@ const char* otaPass = "1234";  // Güvenlik için değiştirin!
 4. Şifre: `1234` (yapılandırmada değiştirdiyseniz onu kullanın)
 5. Güncelleme sırasında ekranda ilerleme görüntülenir
 
+### Ekran Koruyucu ve Deep Sleep
+
+**Ekran Koruyucu:**
+- 1 dakika hareketsizlik sonrası otomatik devreye girer
+- Açılış logosunu gösterir ve parlaklığı %10'a düşürür
+- Encoder hareket ettirerek veya butona basarak normal moda dönebilirsiniz
+- Menü açıkken veya OTA güncellemesi sırasında devreye girmez
+
+**Deep Sleep Modu:**
+- 5 dakika ekran koruyucuda kalırsa otomatik Deep Sleep moduna geçer
+- Maksimum güç tasarrufu sağlar (mikroamper seviyesinde)
+- Encoder butonuna basıp basılı tutarak uyandırabilirsiniz
+- Yedek olarak 1 saat sonra otomatik uyanır
+
 ### Seri Monitör
 
 ```bash
@@ -345,6 +376,12 @@ Seri monitörde şu bilgiler görüntülenir:
 - IP adresi
 - DHT11 okuma durumu
 - OTA güncelleme durumu
+- Deep Sleep uyanma sebebi (GPIO veya Timer)
+- Toplam çalışma süresi kayıt durumu
+- Ekran koruyucu durumu
+- Deep Sleep uyanma sebebi (GPIO veya Timer)
+- Toplam çalışma süresi kayıt durumu
+- Ekran koruyucu durumu
 
 ---
 
